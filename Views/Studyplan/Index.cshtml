@@ -1,0 +1,69 @@
+﻿@model IEnumerable<Planner.Models.StudyPlan>
+@{
+    ViewData["Title"] = "Study Plan";
+    var subjects = ViewBag.Subjects as List<Planner.Models.Subject> ?? new();
+}
+<div class="container-fluid page">
+    <div class="page-title">
+        <div><span class="eyebrow">SMART PLANNER</span><h1>Study Plan</h1><p>Generate a practical daily plan from your subjects.</p></div>
+    </div>
+
+    <div class="panel mb-4">
+        <div class="panel-head"><div><h2>Generate a new plan</h2><p>Choose a subject and your daily study time.</p></div></div>
+        <form asp-action="Generate" method="post" class="row g-3 align-items-end">
+            @Html.AntiForgeryToken()
+            <div class="col-md-5">
+                <label class="form-label">Subject</label>
+                <select name="subjectId" class="form-select" required>
+                    <option value="">Select subject...</option>
+                    @foreach (var s in subjects)
+                    {
+                        <option value="@s.SubjectId">@s.Name — exam @s.ExamDate.ToString("dd MMM")</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Daily study minutes</label>
+                <input name="dailyMinutes" type="number" class="form-control" min="15" max="600" value="120" />
+            </div>
+            <div class="col-md-3"><button class="btn btn-primary w-100">✨ Generate Plan</button></div>
+        </form>
+    </div>
+
+    @foreach (var plan in Model)
+    {
+        <section class="panel mb-4">
+            <div class="panel-head">
+                <div>
+                    <h2>@plan.Subject?.Name</h2>
+                    <p>@plan.StartDate.ToString("dd MMM") → @plan.EndDate.ToString("dd MMM yyyy") · @plan.TotalHours.ToString("0.#") hours</p>
+                </div>
+                <span class="badge text-bg-primary">@plan.Status</span>
+            </div>
+            <div class="plan-grid">
+                @foreach (var task in plan.StudyTasks.OrderBy(x => x.TaskDate))
+                {
+                    <div class="plan-task @(task.Status == "Completed" ? "done" : "")">
+                        <div>
+                            <small>@task.TaskDate.ToString("ddd, dd MMM")</small>
+                            <strong>@task.Title</strong>
+                            <span>@task.EstimatedMinutes min</span>
+                        </div>
+                        @if (task.Status == "Completed")
+                        {
+                            <span class="check">✓</span>
+                        }
+                        else
+                        {
+                            <form asp-controller="Tasks" asp-action="Complete" method="post">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@task.TaskId" />
+                                <button class="btn btn-sm btn-outline-primary">Complete</button>
+                            </form>
+                        }
+                    </div>
+                }
+            </div>
+        </section>
+    }
+</div>

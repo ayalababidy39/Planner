@@ -1,0 +1,102 @@
+﻿@model Planner.ViewModels.DashboardViewModel
+@{
+    ViewData["Title"] = "Dashboard";
+    var completion = Model.TotalTasks == 0 ? 0 : (int)Math.Round(Model.CompletedTasks * 100.0 / Model.TotalTasks);
+}
+
+<div class="container-fluid page">
+    <div class="hero">
+        <div>
+            <span class="eyebrow">YOUR STUDY COMMAND CENTER</span>
+            <h1>Good to see you, @Model.StudentName 👋</h1>
+            <p>Small steps every day turn into big results.</p>
+        </div>
+        <a asp-controller="Subjects" asp-action="Create" class="btn btn-light btn-lg">+ Add Subject</a>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card"><span>⭐</span><div><small>Points</small><strong>@Model.TotalPoints</strong></div></div>
+        <div class="stat-card"><span>🔥</span><div><small>Current Streak</small><strong>@Model.CurrentStreak days</strong></div></div>
+        <div class="stat-card"><span>⏱</span><div><small>Study Time</small><strong>@(Model.StudyMinutes / 60)h @(Model.StudyMinutes % 60)m</strong></div></div>
+        <div class="stat-card"><span>🎯</span><div><small>Completion</small><strong>@completion%</strong></div></div>
+    </div>
+
+    <div class="row g-4 mt-1">
+        <div class="col-lg-8">
+            <section class="panel">
+                <div class="panel-head">
+                    <div><h2>Today's Tasks</h2><p>Focus on what matters today.</p></div>
+                    <a asp-controller="StudyPlan" asp-action="Index">View plan →</a>
+                </div>
+
+                @if (!Model.TodayTasks.Any())
+                {
+                    <div class="empty">No tasks for today. Add a subject and generate a plan.</div>
+                }
+                else
+                {
+                    foreach (var task in Model.TodayTasks)
+                    {
+                        <div class="task-row @(task.Status == "Completed" ? "done" : "")">
+                            <div class="task-check">@(task.Status == "Completed" ? "✓" : "○")</div>
+                            <div class="flex-grow-1">
+                                <strong>@task.Title</strong>
+                                <small>@task.EstimatedMinutes minutes</small>
+                            </div>
+                            @if (task.Status != "Completed")
+                            {
+                                <form asp-controller="Tasks" asp-action="Complete" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@task.TaskId" />
+                                    <button class="btn btn-sm btn-primary">Complete</button>
+                                </form>
+                            }
+                            else
+                            {
+                                <span class="badge text-bg-success">Completed</span>
+                            }
+                        </div>
+                    }
+                }
+            </section>
+        </div>
+
+        <div class="col-lg-4">
+            <section class="panel">
+                <div class="panel-head"><div><h2>Progress</h2><p>Your overall progress.</p></div></div>
+                <div class="progress-ring" style="--progress:@completion">
+                    <div><strong>@completion%</strong><span>completed</span></div>
+                </div>
+                <div class="mini-list">
+                    <div><span>Completed tasks</span><strong>@Model.CompletedTasks / @Model.TotalTasks</strong></div>
+                    <div><span>Longest streak</span><strong>@Model.LongestStreak days</strong></div>
+                    <div><span>Most delayed</span><strong>@(Model.MostDelayedSubject ?? "None")</strong></div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <section class="panel mt-4">
+        <div class="panel-head">
+            <div><h2>Your Subjects</h2><p>Upcoming exams and difficulty.</p></div>
+            <a asp-controller="Subjects" asp-action="Index">Manage →</a>
+        </div>
+        <div class="table-responsive">
+            <table class="table align-middle custom-table">
+                <thead><tr><th>Subject</th><th>Difficulty</th><th>Exam</th><th>Days left</th></tr></thead>
+                <tbody>
+                    @foreach (var s in Model.Subjects)
+                    {
+                        var daysLeft = Math.Max(0, (s.ExamDate.Date - DateTime.Today).Days);
+                        <tr>
+                            <td><strong>@s.Name</strong></td>
+                            <td><span class="difficulty">@(new string('★', s.Difficulty))@(new string('☆', 5 - s.Difficulty))</span></td>
+                            <td>@s.ExamDate.ToString("dd MMM yyyy")</td>
+                            <td><span class="days-pill">@daysLeft days</span></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
